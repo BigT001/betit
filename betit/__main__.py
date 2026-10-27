@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from datetime import datetime
 
 import pandas as pd
@@ -96,8 +97,8 @@ def main():
     b.add_argument("--refit-days", type=int, default=7)
     b.set_defaults(func=cmd_backtest)
     s = sub.add_parser("serve", help="run the web app")
-    s.add_argument("--host", default="127.0.0.1")
-    s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
+    s.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     s.set_defaults(func=cmd_serve)
     args = ap.parse_args()
     args.func(args)

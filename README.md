@@ -23,6 +23,16 @@ python -m betit serve       # open http://127.0.0.1:8000
 Run `update` daily (for example from cron) to refresh fixtures and ratings, then click *Refresh* in the app or
 call `POST /api/reload`.
 
+## Put it online (free, no install)
+
+1. Sign in at [render.com](https://render.com) with your GitHub account.
+2. Click **New → Blueprint**, pick this repository, and confirm. Render reads `render.yaml`.
+3. After the build (a few minutes) you get a public `https://betit-xxxx.onrender.com` link.
+
+The hosted app downloads fresh data in the background on start-up and every 12 hours, so it may show
+"no data" for the first couple of minutes. On Render's free plan the app sleeps when idle and takes about a
+minute to wake, and downloaded data is reset on each restart (it re-downloads automatically).
+
 ## What's inside
 
 | Part | Method |

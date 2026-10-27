@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: betit
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m betit serve --host 0.0.0.0
+    envVars:
+      - key: BETIT_AUTO_UPDATE
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.7"

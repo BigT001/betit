@@ -1,6 +1,11 @@
 """HTTP API + static web UI."""
 from __future__ import annotations
 
+import logging
+import os
+import threading
+import time
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +19,23 @@ app = FastAPI(title="betit", description="Football & tennis probability models w
 @app.on_event("startup")
 def _startup():
     service.reload()
+    if os.environ.get("BETIT_AUTO_UPDATE"):
+        threading.Thread(target=_auto_update, daemon=True).start()
+
+
+def _auto_update():
+    """Hosted mode: refresh data in the background so the server starts at once."""
+    from .data import football, tennis
+
+    hours = float(os.environ.get("BETIT_UPDATE_HOURS", "12"))
+    while True:
+        for name, job in (("football", football.update), ("tennis", tennis.update)):
+            try:
+                logging.info("auto-update %s: %s", name, job())
+            except Exception:
+                logging.exception("auto-update %s failed", name)
+        service.reload()
+        time.sleep(hours * 3600)
 
 
 class Staking(BaseModel):
