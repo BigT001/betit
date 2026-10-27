@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>betit · match probabilities</title>
+<link rel="stylesheet" href="/static/styles.css">
+<script src="/static/vendor/chart.umd.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">bet<span>it</span></div>
+  <nav id="tabs">
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="football">Football</button>
+    <button data-tab="tennis">Tennis</button>
+    <button data-tab="backtest">Track record</button>
+    <button data-tab="bankroll">Bankroll &amp; safety</button>
+  </nav>
+  <div id="status" class="status"></div>
+</header>
+
+<main>
+<!-- OVERVIEW -->
+<section id="tab-overview" class="tab active">
+  <div class="truth card">
+    <h2>Read this first</h2>
+    <p>This app turns public data into calibrated probabilities and compares them with bookmaker prices. It does
+      <b>not</b> make guaranteed money. Bookmakers' prices already contain most of what a public model knows, and
+      they keep a margin of about 5% on every market. Our own walk-forward backtest (see <a href="#" data-goto="backtest">Track record</a>)
+      shows the model's "value bets" <b>lost money</b> against average prices; only shopping for the best available
+      price came out slightly ahead, and even that result is not statistically certain.</p>
+    <p>Winning $1M a day would need tens of millions staked every day at a reliable edge. No public model has that,
+      and bookmakers limit accounts that win. Use this as an analysis tool, size bets with the Kelly calculator, and
+      never stake money you can't afford to lose.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Staking settings</h3>
+      <div class="form-row">
+        <label>Bankroll <input id="bankroll" type="number" min="1" value="1000"></label>
+        <label>Kelly fraction
+          <select id="kelly"><option value="0.1">10% Kelly</option><option value="0.25" selected>25% Kelly</option><option value="0.5">50% Kelly</option></select>
+        </label>
+        <label>Max stake <select id="cap"><option value="0.01">1% of bankroll</option><option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.05">5%</option></select></label>
+        <label>Min edge <select id="edge"><option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.05">5%</option></select></label>
+      </div>
+      <p class="muted small">Used everywhere in the app. Settings stay in this browser only.</p>
+    </div>
+    <div class="card">
+      <h3>How a pick is flagged</h3>
+      <ol class="small">
+        <li>The football model (Dixon-Coles) or tennis model (surface Elo) gives a probability.</li>
+        <li>The market's own probability is taken from average odds with the margin removed.</li>
+        <li>A selection is flagged only if the best price beats the market's fair price by your minimum edge
+          <i>and</i> the model doesn't disagree. That was the only rule that didn't lose in testing.</li>
+        <li>Stake = your Kelly fraction × full Kelly, capped at your maximum.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row-between"><h3>Upcoming football: flagged prices</h3><button id="refresh-board" class="ghost">Refresh</button></div>
+    <div id="board"><p class="muted">Loading…</p></div>
+  </div>
+</section>
+
+<!-- FOOTBALL -->
+<section id="tab-football" class="tab">
+  <div class="card">
+    <h2>Match analyser</h2>
+    <div class="form-row">
+      <label>League <select id="f-league"></select></label>
+      <label>Home <select id="f-home"></select></label>
+      <label>Away <select id="f-away"></select></label>
+      <label class="check"><input type="checkbox" id="f-neutral"> Neutral venue</label>
+    </div>
+    <details class="odds-entry">
+      <summary>Enter the odds your bookmaker offers (optional)</summary>
+      <div class="form-row">
+        <label>Home <input data-odds="home" type="number" step="0.01" min="1.01"></label>
+        <label>Draw <input data-odds="draw" type="number" step="0.01" min="1.01"></label>
+        <label>Away <input data-odds="away" type="number" step="0.01" min="1.01"></label>
+        <label>Over 2.5 <input data-odds="over25" type="number" step="0.01" min="1.01"></label>
+        <label>Under 2.5 <input data-odds="under25" type="number" step="0.01" min="1.01"></label>
+        <label>BTTS yes <input data-odds="btts_yes" type="number" step="0.01" min="1.01"></label>
+        <label>BTTS no <input data-odds="btts_no" type="number" step="0.01" min="1.01"></label>
+      </div>
+      <p class="muted small">With all three 1X2 prices (or both over/under prices) the app removes the margin to get the market's view.</p>
+    </details>
+    <button id="f-go" class="primary">Analyse match</button>
+  </div>
+  <div id="f-result"></div>
+
+  <div class="grid2">
+    <div class="card"><h3>Team ratings <span class="muted small">(goals vs an average side)</span></h3><div id="f-ratings" class="scroll"></div></div>
+    <div class="card"><h3>League table</h3><div id="f-table" class="scroll"></div></div>
+  </div>
+</section>
+
+<!-- TENNIS -->
+<section id="tab-tennis" class="tab">
+  <div class="card">
+    <h2>Tennis match analyser</h2>
+    <div class="form-row">
+      <label>Player 1 <input id="t-p1" list="t-players" placeholder="Start typing a name"></label>
+      <label>Player 2 <input id="t-p2" list="t-players" placeholder="Start typing a name"></label>
+      <datalist id="t-players"></datalist>
+      <label>Surface <select id="t-surface"><option>Hard</option><option>Clay</option><option>Grass</option></select></label>
+      <label>Format <select id="t-bo"><option value="3">Best of 3</option><option value="5">Best of 5</option></select></label>
+      <label>Odds P1 <input id="t-o1" type="number" step="0.01" min="1.01"></label>
+      <label>Odds P2 <input id="t-o2" type="number" step="0.01" min="1.01"></label>
+    </div>
+    <button id="t-go" class="primary">Analyse match</button>
+  </div>
+  <div id="t-result"></div>
+  <div class="card"><h3>Top rated players</h3><div id="t-top" class="scroll"></div></div>
+</section>
+
+<!-- BACKTEST -->
+<section id="tab-backtest" class="tab">
+  <div id="bt"></div>
+</section>
+
+<!-- BANKROLL -->
+<section id="tab-bankroll" class="tab">
+  <div class="grid2">
+    <div class="card">
+      <h2>Kelly calculator</h2>
+      <div class="form-row">
+        <label>Your probability (%) <input id="k-p" type="number" value="55" step="0.1"></label>
+        <label>Decimal odds <input id="k-o" type="number" value="2.00" step="0.01"></label>
+      </div>
+      <div id="k-out"></div>
+      <p class="muted small">Kelly assumes your probability is exactly right. It never is, which is why the app
+        bets a fraction of Kelly. Betting full Kelly on an over-estimated edge loses money over time.</p>
+    </div>
+    <div class="card">
+      <h2>What $1M a day would actually take</h2>
+      <div class="form-row">
+        <label>Target profit per day ($) <input id="g-target" type="number" value="1000000"></label>
+        <label>Realistic edge (ROI %) <input id="g-roi" type="number" value="2" step="0.1"></label>
+      </div>
+      <div id="g-out"></div>
+    </div>
+  </div>
+  <div class="card warn">
+    <h2>Responsible gambling</h2>
+    <ul>
+      <li>Only bet money you can afford to lose. Treat it as entertainment spend, not income.</li>
+      <li>Set a deposit and loss limit with your bookmaker before you start, and a time limit for each session.</li>
+      <li>Never chase losses by raising stakes. Losing streaks of 10-20 bets happen even with a real edge (see the backtest).</li>
+      <li>If betting stops being fun, take a break. Most bookmakers offer self-exclusion; GAMSTOP (UK), the
+        National Council on Problem Gambling 1-800-GAMBLER (US) and BeGambleAware.org offer free, confidential help.</li>
+      <li>Betting is only legal for adults, and only where it is licensed in your country.</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer>
+  Data: football-data.co.uk (results &amp; odds), tennis-data.co.uk or the TML ATP database (non-commercial use). Probabilities
+  are estimates, not promises. 18+ · Gamble responsibly.
+</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
